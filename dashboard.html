@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="script.js" defer></script>
+</head>
+<body class="bg-gray-100 p-4">
+
+  <div class="max-w-4xl mx-auto bg-white shadow-md rounded p-6">
+    <h2 id="tituloBienvenida" class="text-xl font-bold mb-4 text-center">Bienvenido</h2>
+<div class="text-right mb-4">
+  <button onclick="logout()" class="text-red-600 hover:text-red-800 underline">
+    Cerrar sesión
+  </button>
+</div>
+
+    <!-- Modal -->
+<div id="modalAsistencia" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative">
+    <!-- Botón cerrar -->
+    <button onclick="cerrarModal()" class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-xl font-bold">&times;</button>
+
+    <h3 class="text-lg font-semibold mb-4" id="tituloModal">Registrar Asistencia</h3>
+    <p id="infoFechaHora" class="mb-2 text-sm text-gray-700"></p>
+    <button id="btnRegistrar" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full">
+      Registrar
+    </button>
+  </div>
+</div>
+
+
+    <!-- Vista solo para ADMIN -->
+    <div id="vistaAdmin" class="hidden mt-6">
+      <h3 class="text-lg font-semibold mb-4">Registros del Día</h3>
+
+     <div class="flex flex-col sm:flex-row sm:items-end gap-2 mb-4">
+  <div class="flex-1">
+    <label for="filtroUsuario" class="block text-sm text-gray-600">Usuario</label>
+    <input id="filtroUsuario" type="text" placeholder="Usuario" class="border p-2 rounded w-full" />
+  </div>
+  <div class="flex-1">
+    <label for="filtroFechaIni" class="block text-sm text-gray-600">Fecha inicio</label>
+    <input id="filtroFechaIni" type="date" class="border p-2 rounded w-full" />
+  </div>
+  <div class="flex-1">
+    <label for="filtroFechaFin" class="block text-sm text-gray-600">Fecha fin</label>
+    <input id="filtroFechaFin" type="date" class="border p-2 rounded w-full" />
+  </div>
+<div class="mt-2 sm:mt-0 flex gap-2">
+  <button onclick="buscarRegistros()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded w-full sm:w-auto">
+    Buscar
+  </button>
+  <button onclick="limpiarFiltros()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded w-full sm:w-auto">
+    Limpiar
+  </button>
+</div>
+
+</div>
+
+
+<!-- Tarjetas en móvil -->
+<div id="contenedorTarjetas" class="block sm:hidden space-y-4"></div>
+
+<!-- Tabla en escritorio -->
+<div class="hidden sm:block overflow-x-auto">
+  <table class="min-w-full border-collapse text-sm">
+    <thead class="bg-gray-200 text-xs text-gray-600 uppercase">
+      <tr>
+        <th class="border p-2">Usuario</th>
+        <th class="border p-2">Entrada</th>
+        <th class="border p-2">Geo Entrada</th>
+        <th class="border p-2">Salida</th>
+        <th class="border p-2">Geo Salida</th>
+      </tr>
+    </thead>
+    <tbody id="tablaRegistros" class="bg-white">
+      <!-- generado por JS -->
+    </tbody>
+  </table>
+</div>
+    </div>
+  </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    const usuario = sessionStorage.getItem("usuario");
+    const nombre = sessionStorage.getItem("nombre");
+    const perfil = sessionStorage.getItem("perfil");
+
+    if (!usuario) {
+      window.location.href = "index.html";
+      return;
+    }
+
+    document.getElementById("tituloBienvenida").textContent = `Bienvenido, ${nombre}`;
+    const modal = document.getElementById("modalAsistencia");
+    const tituloModal = document.getElementById("tituloModal");
+    const info = document.getElementById("infoFechaHora");
+    const btnRegistrar = document.getElementById("btnRegistrar");
+
+    const ahora = new Date();
+    const fecha = ahora.toLocaleDateString("es-GT");
+    const hora = ahora.toLocaleTimeString("es-GT", { hour: '2-digit', minute: '2-digit' });
+
+    let tipoRegistro = "entrada";
+
+    // Detectar si ya existe una entrada para hoy
+    const res = await fetch(WEB_APP_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "getAsistencia",
+        usuario,
+        fechaIni: fecha,
+        fechaFin: fecha
+      })
+    });
+    const data = await res.json();
+    const tieneEntrada = data.data.some(row => row[0] === usuario && row[1] === fecha);
+    const tieneSalida = data.data.some(row => row[0] === usuario && row[1] === fecha && row[6]);
+
+    // Definir tipo
+    if (tieneEntrada && !tieneSalida) tipoRegistro = "salida";
+
+    // Mostrar popup
+    if (perfil !== "admin") {
+  tituloModal.textContent = `Registro de ${tipoRegistro}`;
+  info.innerHTML = `<strong>Fecha:</strong> ${fecha}<br><strong>Hora:</strong> ${hora}`;
+  modal.classList.remove("hidden");
+}
+
+
+    btnRegistrar.addEventListener("click", () => registrarAsistencia(tipoRegistro));
+
+    // Vista admin
+    if (perfil === "admin") {
+      document.getElementById("vistaAdmin").classList.remove("hidden");
+      buscarRegistros();
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="script.js" defer></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+  <div class="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
+    <h2 class="text-xl font-bold mb-4 text-center">Registro de Usuario</h2>
+
+    <input id="regUsuario" type="text" placeholder="Usuario" class="mb-3 w-full p-2 border rounded" />
+    <input id="regPassword" type="password" placeholder="Contraseña" class="mb-3 w-full p-2 border rounded" />
+    <input id="regNombre" type="text" placeholder="Nombre" class="mb-3 w-full p-2 border rounded" />
+
+    <select id="regArea" class="mb-3 w-full p-2 border rounded">
+      <option value="">Seleccione un área</option>
+      <option value="Ventas">Ventas</option>
+      <option value="Sistemas">Sistemas</option>
+    </select>
+
+    <select id="regSucursal" class="mb-3 w-full p-2 border rounded">
+      <option value="">Seleccione una sucursal</option>
+      <option value="Construfacil">Construfacil</option>
+      <option value="Arenal">Arenal</option>
+      <option value="Acuario">Acuario</option>
+      <option value="Didelasa">Didelasa</option>
+      <option value="Super Mayen">Super Mayen</option>
+      <option value="Tabla Yeso">Tabla Yeso</option>
+    </select>
+
+    <!-- Campo oculto con valor fijo -->
+    <input type="hidden" id="regPerfil" value="normal" />
+
+    <button id="btnRegistrarUsuario" class="bg-green-600 hover:bg-green-700 text-white w-full py-2 rounded">
+      Registrar
+    </button>
+
+    <div id="registerMsg" class="mt-3 text-red-500 text-center"></div>
+
+    <p class="mt-4 text-center text-sm">
+      ¿Ya tienes cuenta?
+      <a href="index.html" class="text-blue-500 hover:underline">Inicia sesión</a>
+    </p>
+  </div>
+</body>
+</html>
