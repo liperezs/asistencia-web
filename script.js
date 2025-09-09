@@ -1,4 +1,6 @@
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz7hNNtuvJL1lWNJmSOgBqPQ5hoEGGfLHdz8IXuG2T0gpylRCqf2DmH_n2j3ibAT1zM/exec"; // <-- tu URL aquí
+//const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz7hNNtuvJL1lWNJmSOgBqPQ5hoEGGfLHdz8IXuG2T0gpylRCqf2DmH_n2j3ibAT1zM/exec"; // <-- tu URL aquí
+const WEB_APP_URL =   "https://script.google.com/macros/s/AKfycbz7hNNtuvJL1lWNJmSOgBqPQ5hoEGGfLHdz8IXuG2T0gpylRCqf2DmH_n2j3ibAT1zM/exec"; // <-- tu URL aquí
+
 
 // ========== LOGIN ==========
 async function login() {
@@ -143,62 +145,82 @@ async function registrarAsistencia(tipo) {
   const fecha = now.toLocaleDateString("es-GT");
   const hora = now.toLocaleTimeString("es-GT", { hour: '2-digit', minute: '2-digit' });
 
+const fechaISO = fechaISOHoy(); // yyyy-MM-dd para lógica/servidor
+  const horaHM   = horaLocalHM(); // HH:mm para UI/guardar
+
   mostrarCargando(`Registrando ${tipo}...`);
 
-  navigator.geolocation.getCurrentPosition(async pos => {
+  try {
+    // 1) Obtener geolocalización con await
+    const pos = await new Promise((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      })
+    );
+
     const lat = pos.coords.latitude;
-    const long = pos.coords.longitude;
-    const url = `https://maps.google.com/?q=${lat},${long}`;
+    const lng = pos.coords.longitude;
+    const url = `https://maps.google.com/?q=${lat},${lng}`;
+
+    // 2) Armar payload con nombres QUE EL BACKEND ESPERA
+    //    Entrada => geoEntLat/geoEntLng/urlEnt
+    //    Salida  => geoSalLat/geoSalLng/urlSal
+    const esEntrada = (tipo === 'entrada');
 
     const payload = {
       action: "registrarAsistencia",
-      tipo,
+      tipo,            // "entrada" | "salida"
       usuario,
-      [`fecha${capitalize(tipo)}`]: fecha,
-      [`hora${capitalize(tipo)}`]: hora,
-      [`lat${capitalize(tipo)}`]: lat,
-      [`long${capitalize(tipo)}`]: long,
-      [`url${capitalize(tipo)}`]: url
+      fecha: fechaISO, // si tu backend no lo usa, puedes omitirlo
+      hora:  horaHM,
+      ...(esEntrada
+        ? { geoEntLat: lat,  geoEntLng: lng,  urlEnt: url }
+        : { geoSalLat: lat,  geoSalLng: lng,  urlSal: url }
+      )
     };
 
+    // 3) Enviar correctamente como JSON
     const res = await fetch(WEB_APP_URL, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
 
     const data = await res.json();
     Swal.close();
 
-if (data.status === "success") {
-  Swal.fire({
-    icon: 'success',
-    title: `Registro de ${tipo} exitoso`,
-    text: `Se ha registrado la ${tipo} correctamente.`
-  }).then(() => {
-    window.location.href = "index.html";
-  });
-} else {
-  Swal.fire({
-    icon: 'error',
-    title: 'Error',
-    text: data.message || "Ocurrió un error durante el registro."
-  }).then(() => {
-    const modal = document.getElementById("modalAsistencia");
-    if (modal) modal.classList.add("hidden");
-  });
-}
+    if (data.status === "success") {
+      Swal.fire({
+        icon: 'success',
+        title: `Registro de ${tipo} exitoso`,
+        text: `Se ha registrado la ${tipo} correctamente.`
+      }).then(() => {
+        window.location.href = "index.html";
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: data.message || "Ocurrió un error durante el registro."
+      }).then(() => {
+        const modal = document.getElementById("modalAsistencia");
+        if (modal) modal.classList.add("hidden");
+      });
+    }
 
-  }, err => {
-   Swal.close();
-Swal.fire({
-  icon: 'error',
-  title: 'Geolocalización fallida',
-  text: 'No se pudo obtener tu ubicación. Habilita el GPS o permisos del navegador.'
-}).then(() => {
-  const modal = document.getElementById("modalAsistencia");
-  if (modal) modal.classList.add("hidden");
-});
-  });
+  } catch (err) {
+    Swal.close();
+    Swal.fire({
+      icon: 'error',
+      title: 'Geolocalización fallida',
+      text: 'No se pudo obtener tu ubicación. Revisa que el sitio esté en HTTPS y que diste permisos.'
+    }).then(() => {
+      const modal = document.getElementById("modalAsistencia");
+      if (modal) modal.classList.add("hidden");
+    });
+  }
 }
 
 // ========== CONSULTA ADMIN ==========
@@ -330,4 +352,12 @@ function limpiarFiltros() {
   document.getElementById("filtroFechaIni").value = "";
   document.getElementById("filtroFechaFin").value = "";
   buscarRegistros();
+}
+// script.js — helpers de fecha/hora
+function fechaISOHoy() {
+  // 'sv-SE' devuelve yyyy-MM-dd y respeta la zona local
+  return new Date().toLocaleDateString('sv-SE'); // yyyy-MM-dd
+}
+function horaLocalHM() {
+  return new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
 }
