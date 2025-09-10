@@ -1,4 +1,4 @@
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxRq72OV2CTgLQU6LzUW6KhSzZuGDzSHkZcx3Jvse6hdaf-SZns1FgTVy3kJVHqx-gJtA/exec"; // <-- tu URL aquí
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxuYAFOmuQi-4nTMRGXqINbNIeUszp-6yuYZ_DNcCv5n7YKuC5T0ShKWDHZnqyBFDHPsQ/exec"; // <-- tu URL aquí
 
 // ========== LOGIN ==========
 async function login() {
