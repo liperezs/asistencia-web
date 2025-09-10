@@ -138,6 +138,14 @@ async function registrarUsuario() {
 
 // ========== ASISTENCIA ==========
 async function registrarAsistencia(tipo) {
+  // 1) Mostrar modal de carga
+  Swal.fire({
+    title: 'Registrando…',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
+
   try {
     const usuario = sessionStorage.getItem("usuario");
     if (!usuario) {
@@ -181,14 +189,20 @@ async function registrarAsistencia(tipo) {
     const result = await resp.json();
 
     if (result.status === "success") {
+      // === Loader: cerrar antes de mostrar el éxito ===
+       Swal.close();
   Swal.fire({
     icon: 'success',
     title: `Registro de ${tipo} exitoso`
   }).then(() => {
+    
     cerrarModal();
     goToLogin(); // redirige al login después de cerrar el mensaje
   });
-} else {
+} 
+else {
+   // === Loader: cerrar antes de mostrar el error ===
+      Swal.close();
   Swal.fire({ icon: 'error', title: 'No se pudo registrar', text: result.message || 'Intenta de nuevo' });
 }
 
@@ -203,6 +217,8 @@ async function registrarAsistencia(tipo) {
     }*/
   } catch (err) {
     const msg = (err && err.message) ? err.message : 'Error desconocido';
+    // === Loader: cerrar antes de mostrar el error ===
+    Swal.close();
     Swal.fire({ icon: 'error', title: 'Error de geolocalización/registro', text: msg });
   }
 }
