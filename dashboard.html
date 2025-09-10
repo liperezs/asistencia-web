@@ -101,38 +101,40 @@
     const tituloModal = document.getElementById("tituloModal");
     const info = document.getElementById("infoFechaHora");
     const btnRegistrar = document.getElementById("btnRegistrar");
+    
 
     const ahora = new Date();
-    const fecha = ahora.toLocaleDateString("es-GT");
+    
+    /*const fecha = ahora.toLocaleDateString("es-GT");
     const hora = ahora.toLocaleTimeString("es-GT", { hour: '2-digit', minute: '2-digit' });
-
-    const fechaISO = fechaISOHoy();
+    */
+   const { fecha, hora } = fechaHoraGT();
+  info.innerHTML = `<strong>Fecha:</strong> ${fecha}<br><strong>Hora:</strong> ${hora}`;
     let tipoRegistro = "entrada";
 
     // Detectar si ya existe una entrada para hoy
-    const res = await fetch(WEB_APP_URL, {
-      method: "POST",
-      //headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "getAsistencia",
-        usuario,
-        fechaIni: fechaISO,
-        fechaFin: fechaISO
-      })
-    });
-    const data = await res.json();
-    
-    //const tieneEntrada = data.data.some(row => row[0] === usuario && row[1] === fechaISO);
-    const tieneEntrada = data.data.some(row => {const fechaRow = typeof row[1] === "string" ? row[1].substring(0, 10) : row[1];return row[0] === usuario && fechaRow === fechaISO;});
-    //const tieneSalida = data.data.some(row => row[0] === usuario && row[1] === fechaISO && row[6]);
-    const tieneSalida = data.data.some(row => row[0] === usuario && row[1] === fechaISO && row[6]);
-    
+   const res = await fetch(WEB_APP_URL, {
+  method: "POST",
+  headers: { "Content-Type": "text/plain;charset=UTF-8" },
+  body: JSON.stringify({
+    action: "getAsistencia",
+    usuario,
+    fechaIni: fecha,  // yyyy-MM-dd
+    fechaFin: fecha   // yyyy-MM-dd
+  })
+});
+const data = await res.json();
+/*
+    const tieneEntrada = data.data.some(row => row[0] === usuario && row[1] === fecha);
+    const tieneSalida = data.data.some(row => row[0] === usuario && row[1] === fecha && row[6]);*/
 
+    const tieneEntrada = data.data.some(row => row[0] === usuario && row[1] === fecha);
+    //const tieneEntrada = data.data.some(row => {const fechaRow = typeof row[1] === "string" ? row[1].substring(0, 10) : row[1];return row[0] === usuario && fechaRow === fecha;});
+    const tieneSalida  = data.data.some(row => row[0] === usuario && row[1] === fecha && row[6]); 
 
     // Definir tipo
-    //if (tieneEntrada && !tieneSalida) tipoRegistro = "salida";
+    if (tieneEntrada && !tieneSalida) tipoRegistro = "salida";
 
-    tipoRegistro = (tieneEntrada && !tieneSalida) ? 'salida' : 'entrada';
     // Mostrar popup
     if (perfil !== "admin") {
   tituloModal.textContent = `Registro de ${tipoRegistro}`;

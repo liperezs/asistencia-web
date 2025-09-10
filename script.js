@@ -1,6 +1,4 @@
-//const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz7hNNtuvJL1lWNJmSOgBqPQ5hoEGGfLHdz8IXuG2T0gpylRCqf2DmH_n2j3ibAT1zM/exec"; // <-- tu URL aquí
-const WEB_APP_URL =   "https://script.google.com/macros/s/AKfycbz7hNNtuvJL1lWNJmSOgBqPQ5hoEGGfLHdz8IXuG2T0gpylRCqf2DmH_n2j3ibAT1zM/exec"; // <-- tu URL aquí
-
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwL71Zks6ErV_pRKto9VK24oBQi-xZZkIqAJMngu-UkyeKJbVmWWA_MraKj5QJsacrhiQ/exec"; // <-- tu URL aquí
 
 // ========== LOGIN ==========
 async function login() {
@@ -140,88 +138,75 @@ async function registrarUsuario() {
 
 // ========== ASISTENCIA ==========
 async function registrarAsistencia(tipo) {
-  const usuario = sessionStorage.getItem("usuario");
-  const now = new Date();
-  const fecha = now.toLocaleDateString("es-GT");
-  const hora = now.toLocaleTimeString("es-GT", { hour: '2-digit', minute: '2-digit' });
-
-const fechaISO = fechaISOHoy(); // yyyy-MM-dd para lógica/servidor
-  const horaHM   = horaLocalHM(); // HH:mm para UI/guardar
-
-  mostrarCargando(`Registrando ${tipo}...`);
-
   try {
-    // 1) Obtener geolocalización con await
-    const pos = await new Promise((resolve, reject) =>
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
-      })
-    );
-
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
-    const url = `https://maps.google.com/?q=${lat},${lng}`;
-
-    // 2) Armar payload con nombres QUE EL BACKEND ESPERA
-    //    Entrada => geoEntLat/geoEntLng/urlEnt
-    //    Salida  => geoSalLat/geoSalLng/urlSal
-    const esEntrada = (tipo === 'entrada');
-
-    const payload = {
-      action: "registrarAsistencia",
-      tipo,            // "entrada" | "salida"
-      usuario,
-      fecha: fechaISO, // si tu backend no lo usa, puedes omitirlo
-      hora:  horaHM,
-      ...(esEntrada
-        ? { geoEntLat: lat,  geoEntLng: lng,  urlEnt: url }
-        : { geoSalLat: lat,  geoSalLng: lng,  urlSal: url }
-      )
-    };
-
-    // 3) Enviar correctamente como JSON
-    const res = await fetch(WEB_APP_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-    Swal.close();
-
-    if (data.status === "success") {
-      Swal.fire({
-        icon: 'success',
-        title: `Registro de ${tipo} exitoso`,
-        text: `Se ha registrado la ${tipo} correctamente.`
-      }).then(() => {
-        window.location.href = "index.html";
-      });
-    } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: data.message || "Ocurrió un error durante el registro."
-      }).then(() => {
-        const modal = document.getElementById("modalAsistencia");
-        if (modal) modal.classList.add("hidden");
-      });
+    const usuario = sessionStorage.getItem("usuario");
+    if (!usuario) {
+      return Swal.fire({ icon: 'error', title: 'Sesión vencida', text: 'Vuelve a iniciar sesión.' });
     }
 
-  } catch (err) {
-    Swal.close();
-    Swal.fire({
-      icon: 'error',
-      title: 'Geolocalización fallida',
-      text: 'No se pudo obtener tu ubicación. Revisa que el sitio esté en HTTPS y que diste permisos.'
-    }).then(() => {
-      const modal = document.getElementById("modalAsistencia");
-      if (modal) modal.classList.add("hidden");
+    // 1) Fecha/Hora correctas (yyyy-MM-dd y HH:mm:ss)
+    const { fecha, hora } = fechaHoraGT();
+
+    // 2) Geolocalización (lat, long y URL)
+    const { lat, lng, url } = await obtenerGeo();
+    console.log('Geo a enviar:', { lat, lng, url }); // Debug Geolocalización
+
+    // Validar que se obtuvieron coordenadas
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      return Swal.fire({ icon: 'error', title: 'Error de geolocalización', text: 'No se pudieron obtener las coordenadas.' });
+    }
+    // 3) Construcción del payload según sea entrada o salida
+    const body = { action: "registrarAsistencia", usuario, tipo };
+
+    if (tipo === "entrada") {
+      body.fechaEntrada = fecha;
+      body.horaEntrada  = hora;
+      body.latEntrada   = lat;
+      body.longEntrada  = lng;
+      body.urlEntrada   = url;
+    } else {
+      body.fechaSalida = fecha;
+      body.horaSalida  = hora;
+      body.latSalida   = lat;
+      body.longSalida  = lng;
+      body.urlSalida   = url;
+    }
+
+    // 4) Envío
+    const resp = await fetch(WEB_APP_URL, {
+      method: "POST",
+     headers: { "Content-Type": "text/plain;charset=UTF-8" },
+      body: JSON.stringify(body)
     });
+    const result = await resp.json();
+
+    if (result.status === "success") {
+  Swal.fire({
+    icon: 'success',
+    title: `Registro de ${tipo} exitoso`
+  }).then(() => {
+    cerrarModal();
+    goToLogin(); // redirige al login después de cerrar el mensaje
+  });
+} else {
+  Swal.fire({ icon: 'error', title: 'No se pudo registrar', text: result.message || 'Intenta de nuevo' });
+}
+
+    /*if (result.status === "success") {
+      Swal.fire({ icon: 'success', title: `Registro de ${tipo} exitoso` });
+      cerrarModal();
+      goToLogin(); // Forzar relogin para evitar manipulación del sistema
+      // Refrescar lista si existe (página admin)
+      if (typeof buscarRegistros === 'function') buscarRegistros();
+    } else {
+      Swal.fire({ icon: 'error', title: 'No se pudo registrar', text: result.message || 'Intenta de nuevo' });
+    }*/
+  } catch (err) {
+    const msg = (err && err.message) ? err.message : 'Error desconocido';
+    Swal.fire({ icon: 'error', title: 'Error de geolocalización/registro', text: msg });
   }
 }
+
 
 // ========== CONSULTA ADMIN ==========
 async function buscarRegistros() {
@@ -353,11 +338,45 @@ function limpiarFiltros() {
   document.getElementById("filtroFechaFin").value = "";
   buscarRegistros();
 }
-// script.js — helpers de fecha/hora
-function fechaISOHoy() {
-  // 'sv-SE' devuelve yyyy-MM-dd y respeta la zona local
-  return new Date().toLocaleDateString('sv-SE'); // yyyy-MM-dd
+function fechaHoraGT() {
+  const now = new Date();
+  // Forzar a zona America/Guatemala (UTC-6, sin DST)
+  const zoned = new Date(
+    now.toLocaleString('en-US', { timeZone: 'America/Guatemala' })
+  );
+  const yyyy = String(zoned.getFullYear());
+  const mm = String(zoned.getMonth() + 1).padStart(2, '0');
+  const dd = String(zoned.getDate()).padStart(2, '0');
+  const HH = String(zoned.getHours()).padStart(2, '0');
+  const MM = String(zoned.getMinutes()).padStart(2, '0');
+  const SS = String(zoned.getSeconds()).padStart(2, '0');
+  return { fecha: `${yyyy}-${mm}-${dd}`, hora: `${HH}:${MM}:${SS}` };
 }
-function horaLocalHM() {
-  return new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
+
+function obtenerGeo(opts = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }) {
+  return new Promise((resolve, reject) => {
+    if (!('geolocation' in navigator)) {
+      return reject(new Error('Geolocalización no soportada'));
+    }
+    // Nota: geolocalización requiere HTTPS. Si estás probando con file:// o http://, el navegador puede bloquearla.
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const url = `https://maps.google.com/?q=${lat},${lng}`;
+        resolve({ lat, lng, url });
+      },
+      (err) => reject(err),
+      opts
+    );
+  });
+}
+function goToLogin() {
+  try {
+    sessionStorage.clear(); // o removeItem('usuario')/('nombre')/('perfil')
+  } catch {}
+  // Evita regresar con Back
+  window.location.replace('index.html');
+  // Fallback por si algún navegador difiere:
+  setTimeout(() => { window.location.href = 'index.html'; }, 5000);
 }
