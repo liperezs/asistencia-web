@@ -1,4 +1,4 @@
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwL71Zks6ErV_pRKto9VK24oBQi-xZZkIqAJMngu-UkyeKJbVmWWA_MraKj5QJsacrhiQ/exec"; // <-- tu URL aquí
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxRq72OV2CTgLQU6LzUW6KhSzZuGDzSHkZcx3Jvse6hdaf-SZns1FgTVy3kJVHqx-gJtA/exec"; // <-- tu URL aquí
 
 // ========== LOGIN ==========
 async function login() {
@@ -19,8 +19,8 @@ async function login() {
     method: "POST",
     body: JSON.stringify({
       action: "login",
-      usuario: usuario.value.trim(),
-      password: password.value.trim()
+      usuario: usuario.value.trim().toLowerCase(),
+      password: password.value.trim().toLowerCase()
     })
   });
 
